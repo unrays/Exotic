@@ -2,7 +2,7 @@
 
 *Also, before you read on, I want to say that 90% of the code here is written by me. I'm an honest person, and I must tell you that the struct Tags was found online and copied and pasted. However, I made numerous modifications and adapted it to my system and my needs. I fully understand what I'm copying and pasting; otherwise, what would be the point of working on and learning these concepts if, in the end, I'm not able to code what I claim to be doing?*
 
-```csharp
+```cpp
 // Copyright (c) November 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
 #include <iostream>
@@ -72,6 +72,8 @@ namespace Tags {
     struct SoundEmitter {};
     struct MusicEmitter {};
     struct AudioListener {};
+
+    struct DisabledTag {};
 
     template<typename T>
     struct is_tag : std::false_type {};
@@ -235,7 +237,9 @@ private:
         std::enable_if_t<std::is_class_v<T> 
            && std::is_base_of_v<Component<T>, T>,
     void> /* Internal interface for adding components */ {
-        std::cout << "[WXR] Added " << typeid(T).name() << " to Entity " << eidx << std::endl;
+        std::cout << "[WXR Component] Added " << typeid(T).name() << " to Entity " << eidx << std::endl;
+
+
         if constexpr (std::is_same_v<T, Position>) {
             if (variables._entityToPosIndex[eidx] != -1) {
                 printf("[ERROR] Entity %u already has Position component\n", eidx);
@@ -310,7 +314,17 @@ public:
         ((internal_add_component<Ts>(eidx)), ...);
     }
 
-
+    template<typename... Ts>
+    auto AddTag(std::uint32_t eidx) noexcept ->
+        std::enable_if_t<(
+            (Tags::is_tag_v<Ts>), ...),
+    void> /* Securly add tags to an entity */ {
+        ((std::cout << "[WXR Tag] Added "
+                    << typeid(Ts).name()
+                    << " to Entity "
+                    << eidx << std::endl)
+        , ...);
+    }
 
 
     template <typename T> void Add(std::uint32_t eidx) {
@@ -407,6 +421,11 @@ int main() {
 
     registry.Add<Position, Velocity>(0);
     registry.Add<Position, Velocity>(1);
+
+    registry.AddTag<Tags::Debug, Tags::NPC>(0);
+
+    registry.AddTag<Tags::Colored>(0);
+    registry.AddTag<Tags::Colored>(1);
 
 
 }
