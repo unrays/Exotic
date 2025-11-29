@@ -141,6 +141,70 @@ namespace Tags {
 #undef REGISTER_TAG
 }
 
+template <typename Derived>
+struct Component {
+    //using BaseType = Component<T>;
+    void test() {
+        printf("Just for testing purposes :)");
+    }
+
+    auto self() {
+        //poubelle
+        return static_cast<Derived*>(this);
+    }
+
+
+};
+
+template<typename... Ts>
+struct TagsGroup {
+    //static_assert((Tags::is_tag<Ts>::value && ...), "All types must be valid tags");
+    static_assert((Tags::is_tag_v<Ts> && ...), "All types must be valid tags");
+
+
+
+    void test2() {
+        printf("Just for testing purposes :)");
+    }
+};
+
+namespace Components {
+    namespace Internal {
+        struct raw_position { std::uint32_t x, y; };
+        struct raw_velocity { std::uint32_t vx, vy; };
+        struct raw_rotation { std::uint8_t angle; };
+        struct raw_scale { std::uint8_t sx, sy; };
+        struct raw_color { std::uint8_t r, g, b, a; };
+    }
+
+    template<typename T>
+    struct is_type : std::false_type {};
+
+    template<typename T>
+    static constexpr bool is_component_v = is_type<T>::value;
+
+    //genre mettre des utilitaires comme same component
+    //ou plus whatever
+
+    struct Position : public Component <Position> ,
+                      public TagsGroup<Tags::Movable, Tags::Physics>,
+                      public Internal::raw_position {
+        void operator()(std::uint32_t x, std::uint32_t y) {
+            this->x = x; this->y = y;
+        }
+    };
+
+    //mettre les using ici avec les tags et le srtp de component<derived>
+
+    #define REGISTER_COMPONENT(T) template<> struct is_type<T> : std::true_type {} 
+        REGISTER_COMPONENT(Internal::raw_position);
+        REGISTER_COMPONENT(Internal::raw_velocity);
+        REGISTER_COMPONENT(Internal::raw_rotation);
+        REGISTER_COMPONENT(Internal::raw_scale);
+        REGISTER_COMPONENT(Internal::raw_color);
+    #undef REGISTER_COMPONENT
+}
+
 class EntityId {
 private:
     static std::uint32_t _nextId;
@@ -155,27 +219,6 @@ struct Entity {
     std::uint32_t Value;
 
     Entity() : Value(EntityId::Next()) {}
-};
-
-
-template<typename... Ts>
-struct TagsGroup {
-    //static_assert((Tags::is_tag<Ts>::value && ...), "All types must be valid tags");
-    static_assert((Tags::is_tag_v<Ts> && ...), "All types must be valid tags");
-
-
-
-    void test2() {
-        printf("Just for testing purposes :)");
-    }
-};
-
-template <typename T>
-struct Component {
-    //using BaseType = Component<T>;
-    void test() {
-        printf("Just for testing purposes :)");
-    }
 };
 
 struct Position : public Component<Position>,
@@ -241,6 +284,10 @@ private:
     void> /* Internal interface for adding components */ {
         std::cout << "[WXR Component] Added " << typeid(T).name() << " to Entity " << eidx << std::endl;
 
+        //peut etre tuple pool ou whatever avec des types et ajouter un type
+        //a la pool a chaque ajout de "nouveau" component et faire un unpacking 
+        //du tuple<typename... Ts> et faire la lambda if constexpr... std::same...
+        //pour chacun.
 
         if constexpr (std::is_same_v<T, Position>) {
             if (variables._entityToPosIndex[eidx] != -1) {
@@ -429,6 +476,18 @@ int main() {
     registry.AddTag<Tags::Colored>(0);
     registry.AddTag<Tags::Colored>(1);
 
+    auto pos = registry.Get<Position>(0);
+    pos.X = 2;
+
+    std::cout << pos.X << std::endl;
+
+    Components::Position position;
+
+    position.x = 5;
+
+    position(25, 50);
+
+    std::cout << position.x << ", " << position.y << std::endl;
 
 }
 ```
