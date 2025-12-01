@@ -7,7 +7,6 @@
 ```cpp
 // Copyright (c) November 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
-#include <iostream>
 
 #pragma once
 #include <iostream>
@@ -186,9 +185,9 @@ namespace Components {
     //genre mettre des utilitaires comme same component
     //ou plus whatever
 
-    struct Position : public Component <Position> ,
-                      public TagsGroup<Tags::Movable, Tags::Physics>,
-                      public Internal::raw_position {
+    struct Position : public Component <Position>,
+        public TagsGroup<Tags::Movable, Tags::Physics>,
+        public Internal::raw_position {
         void operator()(std::uint32_t x, std::uint32_t y) {
             this->x = x; this->y = y;
         }
@@ -196,13 +195,14 @@ namespace Components {
 
     //mettre les using ici avec les tags et le srtp de component<derived>
 
-    #define REGISTER_COMPONENT(T) template<> struct is_type<T> : std::true_type {} 
-        REGISTER_COMPONENT(Internal::raw_position);
-        REGISTER_COMPONENT(Internal::raw_velocity);
-        REGISTER_COMPONENT(Internal::raw_rotation);
-        REGISTER_COMPONENT(Internal::raw_scale);
-        REGISTER_COMPONENT(Internal::raw_color);
-    #undef REGISTER_COMPONENT
+#define REGISTER_COMPONENT(T) template<> struct is_type<T> : std::true_type {} 
+    REGISTER_COMPONENT(Position);
+    REGISTER_COMPONENT(Internal::raw_velocity);
+    REGISTER_COMPONENT(Internal::raw_rotation);
+    REGISTER_COMPONENT(Internal::raw_scale);
+    REGISTER_COMPONENT(Internal::raw_color);
+    //prob remplacer par genre les struct externes directement
+#undef REGISTER_COMPONENT
 }
 
 class EntityId {
@@ -222,24 +222,34 @@ struct Entity {
 };
 
 struct Position : public Component<Position>,
-                  public TagsGroup<Tags::Movable, Tags::SyncPosition>
-                  { std::uint32_t X, Y; };
+    public TagsGroup<Tags::Movable, Tags::SyncPosition>
+{
+    std::uint32_t X, Y;
+};
 
 struct Velocity : public Component<Velocity>,
-                  public TagsGroup<Tags::Movable, Tags::Physics>
-                  { std::uint32_t VX, VY; };
+    public TagsGroup<Tags::Movable, Tags::Physics>
+{
+    std::uint32_t VX, VY;
+};
 
 struct Rotation : public Component<Rotation>,
-                  public TagsGroup<Tags::Physics, Tags::SyncState>
-                  { std::uint8_t Angle; };
+    public TagsGroup<Tags::Physics, Tags::SyncState>
+{
+    std::uint8_t Angle;
+};
 
 struct Scale : public Component<Scale>,
-               public TagsGroup<Tags::Visible>
-               { std::uint8_t X, Y; };
+    public TagsGroup<Tags::Visible>
+{
+    std::uint8_t X, Y;
+};
 
 struct Color : public Component<Color>,
-               public TagsGroup<Tags::Colored, Tags::Visible>
-               { std::uint8_t R, G, B, A; };
+    public TagsGroup<Tags::Colored, Tags::Visible>
+{
+    std::uint8_t R, G, B, A;
+};
 
 class Registry {
 private:
@@ -264,12 +274,14 @@ private:
         std::vector<int> _entityToColorIndex;
     };
 
+    //std::unordered_map<std::type_index, std::unique_ptr<void>> pools;
+
 private:
     Constants constants;
     Variables variables;
 
 private:
-    using u8  = std::uint8_t;
+    using u8 = std::uint8_t;
     using u16 = std::uint16_t;
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
@@ -279,9 +291,9 @@ private:
 private:
     template<typename T>
     auto internal_add_component(std::uint32_t eidx) noexcept ->
-        std::enable_if_t<std::is_class_v<T> 
-           && std::is_base_of_v<Component<T>, T>,
-    void> /* Internal interface for adding components */ {
+        std::enable_if_t<std::is_class_v<T>
+        && std::is_base_of_v<Component<T>, T>,
+        void> /* Internal interface for adding components */ {
         std::cout << "[WXR Component] Added " << typeid(T).name() << " to Entity " << eidx << std::endl;
 
         //peut etre tuple pool ou whatever avec des types et ajouter un type
@@ -359,7 +371,7 @@ public:
     auto Add(std::uint32_t eidx) noexcept ->
         std::enable_if_t<(std::is_class_v<Ts> && ...) &&
         (std::is_base_of_v<Component<Ts>, Ts> && ...),
-    void> /* Serves as a entry point for adding components */ {
+        void> /* Serves as a entry point for adding components */ {
         ((internal_add_component<Ts>(eidx)), ...);
     }
 
@@ -367,12 +379,12 @@ public:
     auto AddTag(std::uint32_t eidx) noexcept ->
         std::enable_if_t<(
             (Tags::is_tag_v<Ts>), ...),
-    void> /* Securly add tags to an entity */ {
+        void> /* Securly add tags to an entity */ {
         ((std::cout << "[WXR Tag] Added "
-                    << typeid(Ts).name()
-                    << " to Entity "
-                    << eidx << std::endl)
-        , ...);
+            << typeid(Ts).name()
+            << " to Entity "
+            << eidx << std::endl)
+            , ...);
     }
 
 
@@ -488,6 +500,5 @@ int main() {
     position(25, 50);
 
     std::cout << position.x << ", " << position.y << std::endl;
-
 }
 ```
