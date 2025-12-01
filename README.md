@@ -4,6 +4,8 @@
 
 *Also, before you read on, I want to say that 95% of the code here is written by me. I'm an honest person, and I must tell you that the struct Tags (only the struct, TagsGroup was my idea) was found online and copied and pasted. However, I made numerous modifications and adapted it to my system and my needs. I fully understand what I'm copying and pasting; otherwise, what would be the point of working on and learning these concepts if, in the end, I'm not able to code what I claim to be doing?*
 
+*Under construction*
+
 ```cpp
 // Copyright (c) November 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
