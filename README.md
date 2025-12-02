@@ -7,7 +7,7 @@
 *Under construction*
 
 ```cpp
-// Copyright (c) November 2025 Félix-Olivier Dumas. All rights reserved.
+// Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
 
 #pragma once
