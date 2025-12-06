@@ -1131,7 +1131,7 @@ public:
 
 public:
     template<typename T>
-    constexpr auto add(std::size_t entity_id) noexcept ->
+    auto add(std::size_t entity_id) noexcept ->
     /* @note Check if the components if already present in the storage_,
     otherwise emplace it. */
 
@@ -1144,7 +1144,7 @@ public:
     }
 
     template<typename T, typename... Ts>
-    constexpr auto add_batch(Ts&&... entity_ids) noexcept ->
+    auto add_batch(Ts&&... entity_ids) noexcept ->
     std::enable_if_t<std::is_base_of_v<Component<T>, T>
     && (sizeof...(entity_ids) > 0), void> {
         std::cout << "[Not implemented] Adding "
@@ -1156,7 +1156,7 @@ public:
 
 public:
     template<typename T>
-    constexpr auto get(std::size_t entity_id) const noexcept ->
+    auto get(std::size_t entity_id) const noexcept ->
     std::enable_if_t<std::is_base_of_v<Component<T>, T>, T&> {
         std::cout << "[Not implemented] Getting "
                   << typeid(std::type_identity_t<T>).name()
@@ -1170,7 +1170,7 @@ public:
 
 public:
     template<typename T, bool Debug = true>
-    constexpr auto get_sparse() noexcept ->
+    auto get_sparse() noexcept ->
     std::enable_if_t<(std::is_base_of_v<Component<T>, T>
     && (std::is_same_v<T, Ts> || ...)), Sparse<T>& > {
         if constexpr (Debug)
@@ -1193,7 +1193,7 @@ public:
      * @return True if the storage_ contains the T sparse set, false otherwise.
      */
     template<typename T>
-    [[nodiscard]] constexpr auto has_component() const noexcept
+    [[nodiscard]] auto has_component() const noexcept
         -> std::enable_if_t<std::is_base_of_v<ISparseSet, T>, bool> {
         return storage_.contains(std::type_index(typeid(T)));
     }
