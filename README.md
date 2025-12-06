@@ -6,6 +6,125 @@
 
 *Under construction*
 
+## The cleanest and most concise version to date, really promising.
+```cpp
+// Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
+// Licensed under the terms described in the LICENSE file.
+
+template<typename... Ts>
+class Registry {
+public:
+    /**
+     * @brief Constructs the Registry and initialize the internal storage with the given types.
+     *
+     * @note Each Ts must inherit from Component<T>.
+     *       The internal storage (tuple of Sparse<Ts>) is created.
+     */
+    template<
+        typename = std::enable_if_t<
+        (std::is_base_of_v<Component<Ts>, Ts> && ...),
+    void>> Registry() noexcept {
+        std::cout << "[Registry Constructor] Created!" << std::endl;
+        storage_ = std::make_tuple(Sparse<Ts>{}...);
+    }
+
+    /**
+     * @brief Default copy constructor.
+     *
+     * Performs a member-wise copy of the Registry.
+     */
+    Registry(const Registry&) = default;
+
+    /**
+     * @brief Default copy assignment operator.
+     *
+     * Performs member-wise assignment from another Registry.
+     */
+    Registry& operator=(const Registry&) = default;
+
+    /**
+     * @brief Default move constructor.
+     *
+     * Moves resources from another Registry. noexcept ensures no exceptions.
+     */
+    Registry(Registry&&) noexcept = default;
+
+    /**
+     * @brief Default move assignment operator.
+     *
+     * Moves resources from another Registry. noexcept ensures no exceptions.
+     */
+    Registry& operator=(Registry&&) noexcept = default;
+
+    /**
+     * @brief Default destructor.
+     *
+     * Cleans up resources. All members are automatically destroyed.
+     */
+    ~Registry() = default;
+
+
+public:
+     /**
+      * @brief Emplaces a component of type T in the sparse set to the given entity ID.
+      *
+      * @tparam T The component type (must inherit from Component<T>).
+      * @param entity_id ID of the entity to which the component is added.
+      */
+    template<typename T>
+    auto emplace(std::size_t entity_id) noexcept ->
+    std::enable_if_t<std::is_base_of_v<Component<T>, T>, void> {
+        std::cout << "[Registry emplace] Entering the emplace() fonction!" << std::endl;
+
+        std::cout << std::boolalpha << contains_type<T>() << std::endl;
+
+        std::get<Sparse<T>>(storage_).emplace_default(entity_id);
+    }
+
+    /**
+     * @brief Retrieves the component of type T associated with the specified entity ID.
+     *
+     * @tparam T The component type (must inherit from Component<T>
+     *           and be part of the Registry type list).
+     * @param entity_id ID of the entity whose component is being required.
+     *
+     * @return A reference to the component of type T.
+     */
+    template<typename T>
+    [[nodiscard]] auto get(std::size_t entity_id) noexcept ->
+    std::enable_if_t<std::is_base_of_v<Component<T>, T>
+    && std::disjunction_v<std::is_same<T, Ts>...>, T&> {
+        std::cout << "[Registry get] Entering the get() fonction!" << std::endl;
+
+        Sparse<T>& sparse = std::get<Sparse<T>>(storage_);
+        return *sparse.get(entity_id); //garbage si rien, attention
+    }
+
+public:
+    /**
+     * @brief Checks whether the registry contains the component type T.
+     * 
+     * @tparam T The type being checked (must inherit from Component<T>
+     *           and be part of the Registry type list).
+     * 
+     * @return True if the registry contains the component type T, false otherwise.
+     */
+    template<typename T>
+    constexpr auto contains_type() const noexcept ->
+    std::enable_if_t<std::is_base_of_v<Component<T>, T>, bool> {
+        return std::disjunction_v<std::is_same<T, Ts>...>;
+        /* Pas tellement utile étant donné que j'ai deja SFINAE */
+    }
+        
+private:
+    /**
+     * @brief Internal storage for all component sparse sets.
+     */
+    std::tuple<Sparse<Ts>...> storage_;
+};
+```
+
+## A interesting prototype, but not viable enough for large-scale deployment.
 ```cpp
 // Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
@@ -506,14 +625,20 @@ int main() {
 ```
 
 ```cpp
+// Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
+// Licensed under the terms described in the LICENSE file.
+
 template<typename T>
-class Sparse {
+class Sparse : public ISparseSet{
 private:
     static constexpr std::size_t DEFAULT_DENSE_CAPACITY = 2048;
     static constexpr std::size_t DEFAULT_SPARSE_CAPACITY = 16384;
 
+    using ContainedType = T;
+
     /**
      * @brief Prints a formatted error for insufficient capacity.
+     * 
      * @param context Context in which the error occurred.
      * @param required The required size.
      * @param actual The actual size.
@@ -526,6 +651,7 @@ private:
 
     /**
      * @brief Prints a formatted error if an entity is missing a required component.
+     * 
      * @param entity_id ID of the entity missing the component.
      */
     inline void error_entity_has_no_component(std::size_t entity_id) {
@@ -535,6 +661,7 @@ private:
 
     /**
      * @brief Prints a formatted error when an entity already has a component.
+     * 
      * @param entity_id ID of the entity that already has the component.
      */
     inline void error_entity_already_has_component(std::size_t entity_id) {
@@ -544,7 +671,9 @@ private:
 
     /**
      * @brief Checks if the entity_id is out of bounds of the sparse set.
+     * 
      * @param entity_id ID of the entity being checked.
+     * 
      * @return True if the entity_id is within bounds, false otherwise.
      */
     inline constexpr bool is_valid_entity_id(std::size_t entity_id) const noexcept {
@@ -554,8 +683,10 @@ private:
 public:
     /**
      * @brief Constructs the sparse set and reserves internal storage with the given capacities.
+     * 
      * @param init_dense_capacity Initial capacity for the dense (default: DEFAULT_DENSE_CAPACITY).
      * @param init_sparse_capacity Initial capacity for the sparse (default: DEFAULT_SPARSE_CAPACITY).
+     * 
      * @note The reverse_ array is also reserved with init_dense_capacity.
      */
     Sparse(std::size_t init_dense_capacity = DEFAULT_DENSE_CAPACITY,
@@ -605,6 +736,7 @@ public:
 public:
     /**
      * @brief Inserts a given component associated with a specific entity into the sparse set.
+     * 
      * @param entity_id Id of the entity to associate the component with.
      * @param component The component to associate with the entity and insert into the sparse set.
      */
@@ -632,6 +764,7 @@ public:
 
     /**
      * @brief Inserts a single given component associated with multiple entities into the sparse set.
+     *
      * @param entity_ids 
      */
     template<typename... Ts, typename U>
@@ -648,6 +781,8 @@ public:
                 sparse_.size()
             ); return;
         }
+
+        std::cout << "Emplacing new component for entity " << entity_id << std::endl;
 
         if (contains(entity_id)) {
             error_entity_already_has_component(entity_id);
@@ -731,50 +866,50 @@ public:
     auto end() const noexcept { return dense_.end(); }
 
 public:
-    std::optional<T*> operator[](std::size_t entity_id) noexcept {
+    T* operator[](std::size_t entity_id) noexcept {
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
                 entity_id + 1,
                 sparse_.size()
             );
-            return std::nullopt;
+            return nullptr;
         }
         return &dense_[sparse_[entity_id]];
     }
 
-    const std::optional<T*> operator[](std::size_t entity_id) const noexcept {
+    const T* operator[](std::size_t entity_id) const noexcept {
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
                 entity_id + 1,
                 sparse_.size()
             );
-            return std::nullopt;
+            return nullptr;
         }
         return &dense_[sparse_[entity_id]];
     }
 
-    std::optional<T*> get(std::size_t entity_id) & noexcept {
+    T* get(std::size_t entity_id) & noexcept {
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
                 entity_id + 1,
                 sparse_.size()
             );
-            return std::nullopt;
+            return nullptr;
         }
         return &dense_[sparse_[entity_id]];
     }
 
-    std::optional<const T*> get(std::size_t entity_id) const& noexcept {
+    const T* get(std::size_t entity_id) const& noexcept {
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
                 entity_id + 1,
                 sparse_.size()
             );
-            return std::nullopt;
+            return nullptr;
         }
         return &dense_[sparse_[entity_id]];
     }
