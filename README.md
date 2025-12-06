@@ -7,7 +7,7 @@
 *Under construction*
 
 ## The cleanest and most concise version to date, really promising.
-#### I re-started from scratch
+#### I re-started from scratch, that's why it's so slow going.
 ```cpp
 // Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
