@@ -83,6 +83,23 @@ public:
     }
 
     /**
+     * @brief Emplaces a component of type T in the sparse set to multiple entity IDs.
+     * 
+     * @tparam T The component type (must inherit from Component<T>).
+     * @param entity_ids Variadic pack of entity IDs to which the component is added.
+     * 
+     * @note All entities must be convertible to std::size_t. Passing zero IDs is not allowed.
+     */
+    template<typename T, typename... Ts>
+    auto emplace_all(Ts&&... entity_ids) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && (std::is_convertible_v<Ts, std::size_t> && ...)
+        && (sizeof...(Ts) > 0), void> {
+            //(emplace<T>(std::forward<Ts>(entity_ids)), ...);
+            std::get<Sparse<T>>(storage_).batch_emplace(entity_ids);
+    }
+
+    /**
      * @brief Retrieves the component of type T associated with the specified entity ID.
      *
      * @tparam T The component type (must inherit from Component<T>
@@ -99,6 +116,23 @@ public:
 
         Sparse<T>& sparse = std::get<Sparse<T>>(storage_);
         return *sparse.get(entity_id); //garbage si rien, attention
+    }
+
+    /**
+     * @brief Retrieves all the components of type T associated with all given entity IDs.
+     * 
+     * @tparam T The component type (must inherit from Component<T>
+     *           and be part of the Registry type list).
+     * @param entity_ids Variadic pack of entity IDs to which the component is added.
+     *
+     * @return A std::tuple of references to all components of type T.
+     */
+    template<typename T, typename... Ts>
+    [[nodiscard]] auto get_all(Ts&&... entity_ids) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && (std::is_convertible_v<Ts, std::size_t> && ...)
+        && (sizeof...(Ts) > 0), std::tuple<T&...>> {
+            return std::tie(get<T>(entity_ids)...);
     }
 
 public:
