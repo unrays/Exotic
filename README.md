@@ -547,6 +547,107 @@ private:
 };
 ```
 
+```cpp
+// Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
+// Licensed under the terms described in the LICENSE file.
+
+template<typename... Ts>
+class View {
+public:
+    /**
+     * @brief Constructs the view by initializing the internal storage
+     *        with the given references of existing sparse sets
+     *
+     * @note ... (sfinae and conditions)
+     */
+    View(Sparse<Ts>&... sparses) noexcept
+        : s_ref_(sparses...) {
+    }
+
+    //faut interdir l'instanciation et plus
+    //uniquement le registry qui doit etre en mesure
+    View(const View&) = default;
+    View& operator=(const View&) = default;
+    View(View&&) noexcept = default;
+    View& operator=(View&&) noexcept = default;
+    ~View() = default;
+    
+public:
+    template<typename... Ts> //possiblement faire un iterator generique plus tard 
+    class ViewIterator { //en gros, ++ et si entity na pas les trois, il skil au prochain
+    public:
+        ViewIterator(std::size_t begin_id) noexcept
+            : current_id_(begin_id) {}
+
+        ViewIterator(const ViewIterator&) = default;
+        ViewIterator& operator=(const ViewIterator&) = default;
+        ViewIterator(ViewIterator&&) noexcept = default;
+        ViewIterator& operator=(ViewIterator&&) noexcept = default;
+        ~ViewIterator() = default;
+
+    public:
+        ViewIterator& operator++() { // prefix increment
+
+        }
+
+        ViewIterator operator++(int) { // postfix increment
+            
+        }
+
+        bool operator==(const ViewIterator& other) const noexcept {
+            return current_id_ == other.current_id_;
+        }
+
+        bool operator!=(const ViewIterator& other) const noexcept {
+            return current_id_ != other.current_id_;
+        }
+
+
+        //next, check si valid (les x components == true), renvoie l'id
+
+    private:
+        inline constexpr bool is_valid_entity(std::size_t entity_id) const noexcept {
+            return std::conjunction_v<(
+                //deplier le tuple et avec un evaluate si true ou shit de meme
+                //ousimplement faire bool result = false; passer sur les trois et return;
+            )>
+
+            return (std::get<Sparse<T>>(storage_))
+        }
+
+    private:
+        std::size_t current_id_;
+        std::size_t end_id;
+
+        //stocke l'entité id courant
+    };
+
+    /* result espéré */
+    /*int arr[3] = {1,2,3};
+
+    MyIterator begin{arr};
+    MyIterator end{arr + 3};
+
+    for (auto it = begin; it != end; ++it) {
+        std::cout << *it << "\n";
+    }*/
+
+    /*for (auto it = view.begin(); it != view.end(); ++it) { ... }*/
+
+    /* auto view = registry.view<Position, Velocity, Health>();
+       le registre injecte les sparse set correspondants dans view */
+
+public:
+    //Iterator begin() { return Iterator(data); } <- plus tard
+    //Iterator end() { return Iterator(data + size); } <- plus tard
+
+private:
+    std::tuple<Sparse<Ts>&...> s_ref_;
+    //size_t size; <- plus tard
+
+};
+```
+
 ## A interesting prototype, but not viable enough for large-scale deployment.
 ```cpp
 // Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
