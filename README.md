@@ -2,8 +2,6 @@
 
 *I also want to mention that I've tried my best to avoid looking at popular ECS like Beavy, EnTT, or Flecs in order to maintain a "healthy" direction and learn as much as possible without being influenced by "best" practices. I enjoy making mistakes, failing, and getting back up; that's what I find fun about learning. If I watched and copied others, I simply wouldn't learn. Here, I'm quite proud of the TagsGroup system I've come up with; a component has one or more tags that it automatically assigns to its entity when the tag is applied. Basically, I want a dynamic tagging system. For example, if I add the Position component, the entity is automatically (by default) assigned the position tags. Finally, there's always the option to manually disable, add, or remove tags to control everything in very specific situations.*
 
-*Also, before you read on, I want to say that 95% of the code here is written by me. I'm an honest person, and I must tell you that the struct Tags (only the struct, TagsGroup was my idea) was found online and copied and pasted. However, I made numerous modifications and adapted it to my system and my needs. I fully understand what I'm copying and pasting; otherwise, what would be the point of working on and learning these concepts if, in the end, I'm not able to code what I claim to be doing?*
-
 *Under construction*
 
 ## The cleanest and most concise version to date, really promising.
@@ -566,60 +564,166 @@ public:
 
     //faut interdir l'instanciation et plus
     //uniquement le registry qui doit etre en mesure
+
+    /**
+     * @brief Default copy constructor.
+     *
+     * Performs a member-wise copy of the View.
+     */
     View(const View&) = default;
+
+    /**
+     * @brief Default copy assignment operator.
+     *
+     * Performs member-wise assignment from another View.
+     */
     View& operator=(const View&) = default;
+
+    /**
+     * @brief Default move constructor.
+     *
+     * Moves resources from another View. noexcept ensures no exceptions.
+     */
     View(View&&) noexcept = default;
+
+    /**
+     * @brief Default move assignment operator.
+     *
+     * Moves resources from another View. noexcept ensures no exceptions.
+     */
     View& operator=(View&&) noexcept = default;
+
+    /**
+     * @brief Default destructor.
+     *
+     * Cleans up resources. All members are automatically destroyed.
+     */
     ~View() = default;
     
 public:
     template<typename... Ts> //possiblement faire un iterator generique plus tard 
     class ViewIterator { //en gros, ++ et si entity na pas les trois, il skil au prochain
     public:
-        ViewIterator(std::size_t begin_id) noexcept
+        /**
+         * @brief Constructs a ViewIterator with the specified initial and end state.
+         * 
+         * @param begin_id The starting entity ID for the iterator.
+         * @param end_id The ending entity ID for the iterator.
+         * 
+         * genre verif si begin est plus petit que end
+         */ 
+        ViewIterator(std::size_t begin_id, /*end???*/) noexcept
             : current_id_(begin_id) {}
 
+        /**
+         * @brief Default copy constructor.
+         *
+         * Performs a member-wise copy of the ViewIterator.
+         */
         ViewIterator(const ViewIterator&) = default;
+
+        /**
+         * @brief Default copy assignment operator.
+         *
+         * Performs member-wise assignment from another ViewIterator.
+         */
         ViewIterator& operator=(const ViewIterator&) = default;
+
+        /**
+         * @brief Default move constructor.
+         *
+         * Moves resources from another ViewIterator. noexcept ensures no exceptions.
+         */
         ViewIterator(ViewIterator&&) noexcept = default;
+
+        /**
+         * @brief Default move assignment operator.
+         *
+         * Moves resources from another ViewIterator. noexcept ensures no exceptions.
+         */
         ViewIterator& operator=(ViewIterator&&) noexcept = default;
+
+        /**
+         * @brief Default destructor.
+         *
+         * Cleans up resources. All members are automatically destroyed.
+         */
         ~ViewIterator() = default;
 
     public:
-        ViewIterator& operator++() { // prefix increment
-
+        /**
+         * @brief Advances the iterator to the next element (prefix version).
+         *
+         * Moves the iterator forward to the next valid element according to the container's rules.
+         *
+         * @return A reference to the iterator after it has been advanced.
+         *
+         * @note This function modifies the iterator in-place.
+         */
+        ViewIterator& operator++() {
+            while (current_id_ != end_id && !is_valid_entity(++current_id_));
+            return *this;
         }
 
-        ViewIterator operator++(int) { // postfix increment
-            
+        /**
+         * @brief Advances the iterator to the next element (postfix version).
+         *
+         * Moves the iterator forward to the next valid element, but returns the iterator state
+         * prior to the increment.
+         *
+         * @param int Dummy parameter to distinguish from prefix increment.
+         * @return A copy of the iterator before it was advanced.
+         *
+         * @note This version may be less efficient than prefix because it typically involves copying.
+         */
+        ViewIterator operator++(int) {
+            ViewIterator temp = *this;
+            while (current_id_ != end_id && !is_valid_entity(++current_id_));
+            return temp;
         }
 
+        /**
+         * @brief Compares two iterators for equality.
+         *
+         * Two iterators are considered equal if they point to the same entity (current_id_).
+         *
+         * @param other The iterator to compare with.
+         * @return true if both iterators point to the same entity, false otherwise.
+         */
         bool operator==(const ViewIterator& other) const noexcept {
             return current_id_ == other.current_id_;
         }
 
+        /**
+         * @brief Compares two iterators for inequality.
+         *
+         * Two iterators are considered unequal if they point to different entities.
+         *
+         * @param other The iterator to compare with.
+         * @return true if the iterators point to different entities, false otherwise.
+         */
         bool operator!=(const ViewIterator& other) const noexcept {
             return current_id_ != other.current_id_;
         }
 
-
-        //next, check si valid (les x components == true), renvoie l'id
-
     private:
+        /**
+         * @brief Checks whether the given entity exists in all associated sparse sets.
+         *
+         * @param entity_id ID of the entity whose component is being required.
+         * 
+         * @return True if the given entity exists in all associated sparse sets.
+         *         False otherwise.
+         */
         inline constexpr bool is_valid_entity(std::size_t entity_id) const noexcept {
-            return std::conjunction_v<(
-                //deplier le tuple et avec un evaluate si true ou shit de meme
-                //ousimplement faire bool result = false; passer sur les trois et return;
-            )>
-
-            return (std::get<Sparse<T>>(storage_))
+            return std::apply([&](auto&&... args) {
+                return ((args[entity_id] != nullptr && ...)); // temporary patch
+            }, s_ref_);
         }
 
     private:
         std::size_t current_id_;
         std::size_t end_id;
-
-        //stocke l'entité id courant
     };
 
     /* result espéré */
