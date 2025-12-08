@@ -71,6 +71,8 @@ public:
       *
       * @tparam T The component type (must inherit from Component<T>).
       * @param entity_id ID of the entity to which the component is added.
+      * 
+      * @note The component must be registered in the registry.
       */
     template<typename T>
     auto emplace(std::size_t entity_id) noexcept ->
@@ -87,16 +89,18 @@ public:
      * 
      * @tparam T The component type (must inherit from Component<T>).
      * @param entity_ids Variadic pack of entity IDs to which the component is added.
-     * 
-     * @note All entities must be convertible to std::size_t. Passing zero IDs is not allowed.
+     *      
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
      */
-    template<typename T, typename... Ts>
-    auto emplace_all(Ts&&... entity_ids) noexcept ->
+    template<typename T, typename... Ids>
+    auto emplace_all(Ids&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_base_of_v<Component<T>, T>
-        && (std::is_convertible_v<Ts, std::size_t> && ...)
-        && (sizeof...(Ts) > 0), void> {
-            //(emplace<T>(std::forward<Ts>(entity_ids)), ...);
-            std::get<Sparse<T>>(storage_).batch_emplace(entity_ids);
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && (sizeof...(Ids) > 0), void> {
+            std::get<Sparse<T>>(storage_) //faire fonction get interne
+                .batch_emplace(std::forward<Ids>(entity_ids)...);
     }
 
     /**
@@ -107,6 +111,8 @@ public:
      * @param entity_id ID of the entity whose component is being required.
      *
      * @return A reference to the component of type T.
+     * 
+     * @note The component must be registered in the registry.
      */
     template<typename T>
     [[nodiscard]] auto get(std::size_t entity_id) noexcept ->
@@ -126,13 +132,53 @@ public:
      * @param entity_ids Variadic pack of entity IDs to which the component is added.
      *
      * @return A std::tuple of references to all components of type T.
+     * 
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
      */
-    template<typename T, typename... Ts>
-    [[nodiscard]] auto get_all(Ts&&... entity_ids) noexcept ->
+    template<typename T, typename... Ids>
+    [[nodiscard]] auto get_all(Ids&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_base_of_v<Component<T>, T>
-        && (std::is_convertible_v<Ts, std::size_t> && ...)
-        && (sizeof...(Ts) > 0), std::tuple<T&...>> {
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && std::disjunction_v<std::is_same<T, Ts>...>
+        && (sizeof...(Ids) > 0), std::tuple<T&>> {
             return std::tie(get<T>(entity_ids)...);
+    }
+
+    /**
+     * @brief Removes the component of type T associated with the given entity ID.
+     * 
+     * @tparam T The component type (must inherit from Component<T>).
+     * @param entity_id ID of the entity whose component is being required.
+     *
+     * @note The component must be registered in the registry.
+     */
+    template<typename T>
+    auto remove(std::size_t entity_id) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && std::disjunction_v<std::is_same<T, Ts>...>, void> {
+            std::get<Sparse<T>>(storage_).remove_swap(entity_id);
+    }
+
+    /**
+     * @brief Removes the component of type T associated with all given entitiy IDs.
+     *
+     * @tparam T The component type (must inherit from Component<T>).
+     * @param entity_ids Variadic pack of entity IDs to which the component is added.
+     *
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
+     */
+    template<typename T, typename... Ids>
+    auto remove_all(Ids&&... entity_ids) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && std::disjunction_v<std::is_same<T, Ts>...>
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && (sizeof...(Ids) > 0), void> {
+            std::get<Sparse<T>>(storage_)
+                .batch_remove_swap(std::forward<Ids>(entity_ids)...);
     }
 
 public:
@@ -275,9 +321,12 @@ public:
      * 
      * @param entity_id Id of the entity to associate the component with.
      * @param component The component to associate with the entity and insert into the sparse set.
+     *
+     * @note The component must be the same as the type stored.
      */
     template<typename U>
-    void insert(std::size_t entity_id, U&& component) noexcept {
+    auto insert(std::size_t entity_id, const U& component) noexcept ->
+    std::enable_if_t<std::is_same_v<U, T>, void> {
         if (!is_valid_entity_id(entity_id)) {
             error_not_enough_capacity(
                 "Sparse vector too small",
@@ -291,7 +340,7 @@ public:
             return;
         }
 
-        dense_.push_back(std::forward<U>(component));
+        dense_.push_back(component);
         std::size_t component_index = dense_.size() - 1;
 
         sparse_[entity_id] = component_index;
@@ -301,13 +350,26 @@ public:
     /**
      * @brief Inserts a single given component associated with multiple entities into the sparse set.
      *
-     * @param entity_ids 
+     * @param entity_ids Ids of all the entities to associate the component with.
+     * @param component The component to associate with all the entities and insert into the sparse set.
+     * 
+     * @note All entity_ids must be unsigned integers.
+     * @note The component must be the same as the type stored.
+     * @note Requires at least one entity_id.
      */
-    template<typename... Ts, typename U>
-    auto batch_insert(Ts... entity_ids, const U& component) noexcept ->
-        std::enable_if_t<(is_index_type_v<Ts> && ...) && (sizeof...(Ts) > 0),
-        void> { (insert(entity_ids, component), ...); }
+    template<typename U, typename... Ts>
+    auto batch_insert(Ts&&... entity_ids, const U& component) noexcept ->
+        std::enable_if_t<std::is_same_v<U, T> && (std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), void> {
+            (insert(std::forward<Ts>(entity_ids), component), ...);
+    }
 
+    /**
+     * @brief Emplaces a type T component in the sparse set
+     *        associated with the given entity.
+     *
+     * @param entity_id Id of the entity to associate the component with.
+     */
     auto emplace_default(std::size_t entity_id) noexcept ->
         std::enable_if_t<std::is_default_constructible_v<T>, void> {
         if (!is_valid_entity_id(entity_id)) {
@@ -332,12 +394,28 @@ public:
         reverse_.push_back(entity_id);
     }
 
+    /**
+     * @brief Emplaces a type T component in the sparse set
+     *        associated with multiple entities into the sparse set.
+     *
+     * @param entity_ids Ids of all the entities to associate the component with.
+     * 
+     * @note All entity_ids must be unsigned integers.
+     * @note Requires at least one entity_id.
+     */
     template<typename... Ts>
-    auto batch_emplace(Ts... entity_ids) noexcept ->
+    auto batch_emplace(Ts&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_default_constructible_v<T>
-        && (is_index_type_v<Ts> && ...) && (sizeof...(Ts) > 0),
-        void> { (emplace_default(entity_ids), ...); }
+        && (std::is_integral_v<Ts> && ...) && (std::is_unsigned_v<Ts> && ...)
+        && (sizeof...(Ts) > 0) ,void> {
+            (emplace_default(std::forward<Ts>(entity_ids)), ...);
+    }
 
+    /**
+     * @brief Removes an entity from the sparse set using swap-and-pop strategy.
+     * 
+     * @param entity_ids Id of the entity to associate the component with.
+     */
     void remove_swap(std::size_t entity_id) {
         if (!is_valid_entity_id(entity_id)) {
             error_not_enough_capacity(
@@ -366,10 +444,20 @@ public:
         sparse_[entity_id] = SIZE_MAX;
     }
 
+    /**
+     * @brief Removes an entity from the sparse set using swap-and-pop strategy.
+     *
+     * @param entity_ids Ids of all the entities to associate the component with.
+     *
+     * @note All entity_ids must be unsigned integers.
+     * @note Requires at least one entity_id.
+     */
     template<typename... Ts>
-    auto batch_remove_swap(Ts... entity_ids) noexcept ->
-        std::enable_if_t<((is_index_type_v<Ts>) && ...)
-        && (sizeof...(Ts) > 0), void> { (remove_swap(entity_ids), ...); }
+    auto batch_remove_swap(Ts&&... entity_ids) noexcept ->
+        std::enable_if_t<(std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), void> {
+            (remove_swap(std::forward<Ts>(entity_ids)), ...);
+    }
 
 public:
     bool contains(std::size_t entity_id) const {
@@ -377,9 +465,11 @@ public:
     }
 
     template<typename... Ts>
-    auto batch_contains(Ts... entity_ids) const noexcept ->
-        std::enable_if_t<(is_index_type_v<Ts> && ...)
-        && (sizeof...(Ts) > 0), bool> { return (contains(entity_ids) && ...); }
+    auto batch_contains(Ts&&... entity_ids) const noexcept ->
+        std::enable_if_t<(std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), bool> {
+            return (contains(std::forward<Ts>(entity_ids)) && ...);
+    }
 
     std::size_t count() const noexcept { return dense_.size(); }
     std::size_t capacity() const noexcept { return sparse_.capacity(); }
@@ -402,7 +492,7 @@ public:
     auto end() const noexcept { return dense_.end(); }
 
 public:
-    T* operator[](std::size_t entity_id) noexcept {
+    T* operator[](std::size_t entity_id) noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -414,7 +504,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    const T* operator[](std::size_t entity_id) const noexcept {
+    const T* operator[](std::size_t entity_id) const noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -426,7 +516,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    T* get(std::size_t entity_id) & noexcept {
+    T* get(std::size_t entity_id) & noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -438,7 +528,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    const T* get(std::size_t entity_id) const& noexcept {
+    const T* get(std::size_t entity_id) const& noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -962,6 +1052,9 @@ int main() {
 // Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
 
+// Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
+// Licensed under the terms described in the LICENSE file.
+
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -1117,9 +1210,12 @@ public:
      * 
      * @param entity_id Id of the entity to associate the component with.
      * @param component The component to associate with the entity and insert into the sparse set.
+     *
+     * @note The component must be the same as the type stored.
      */
     template<typename U>
-    void insert(std::size_t entity_id, U&& component) noexcept {
+    auto insert(std::size_t entity_id, const U& component) noexcept ->
+    std::enable_if_t<std::is_same_v<U, T>, void> {
         if (!is_valid_entity_id(entity_id)) {
             error_not_enough_capacity(
                 "Sparse vector too small",
@@ -1133,7 +1229,7 @@ public:
             return;
         }
 
-        dense_.push_back(std::forward<U>(component));
+        dense_.push_back(component);
         std::size_t component_index = dense_.size() - 1;
 
         sparse_[entity_id] = component_index;
@@ -1143,13 +1239,26 @@ public:
     /**
      * @brief Inserts a single given component associated with multiple entities into the sparse set.
      *
-     * @param entity_ids 
+     * @param entity_ids Ids of all the entities to associate the component with.
+     * @param component The component to associate with all the entities and insert into the sparse set.
+     * 
+     * @note All entity_ids must be unsigned integers.
+     * @note The component must be the same as the type stored.
+     * @note Requires at least one entity_id.
      */
     template<typename U, typename... Ts>
-    auto batch_insert(Ts... entity_ids, const U& component) noexcept ->
-        std::enable_if_t<(is_index_type_v<Ts> && ...) && (sizeof...(Ts) > 0),
-        void> { (insert(entity_ids, component), ...); }
+    auto batch_insert(Ts&&... entity_ids, const U& component) noexcept ->
+        std::enable_if_t<std::is_same_v<U, T> && (std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), void> {
+            (insert(std::forward<Ts>(entity_ids), component), ...);
+    }
 
+    /**
+     * @brief Emplaces a type T component in the sparse set
+     *        associated with the given entity.
+     *
+     * @param entity_id Id of the entity to associate the component with.
+     */
     auto emplace_default(std::size_t entity_id) noexcept ->
         std::enable_if_t<std::is_default_constructible_v<T>, void> {
         if (!is_valid_entity_id(entity_id)) {
@@ -1174,12 +1283,28 @@ public:
         reverse_.push_back(entity_id);
     }
 
+    /**
+     * @brief Emplaces a type T component in the sparse set
+     *        associated with multiple entities into the sparse set.
+     *
+     * @param entity_ids Ids of all the entities to associate the component with.
+     * 
+     * @note All entity_ids must be unsigned integers.
+     * @note Requires at least one entity_id.
+     */
     template<typename... Ts>
-    auto batch_emplace(Ts... entity_ids) noexcept ->
+    auto batch_emplace(Ts&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_default_constructible_v<T>
-        && (is_index_type_v<Ts> && ...) && (sizeof...(Ts) > 0),
-        void> { (emplace_default(entity_ids), ...); }
+        && (std::is_integral_v<Ts> && ...) && (std::is_unsigned_v<Ts> && ...)
+        && (sizeof...(Ts) > 0) ,void> {
+            (emplace_default(std::forward<Ts>(entity_ids)), ...);
+    }
 
+    /**
+     * @brief Removes an entity from the sparse set using swap-and-pop strategy.
+     * 
+     * @param entity_ids Id of the entity to associate the component with.
+     */
     void remove_swap(std::size_t entity_id) {
         if (!is_valid_entity_id(entity_id)) {
             error_not_enough_capacity(
@@ -1208,10 +1333,20 @@ public:
         sparse_[entity_id] = SIZE_MAX;
     }
 
+    /**
+     * @brief Removes an entity from the sparse set using swap-and-pop strategy.
+     *
+     * @param entity_ids Ids of all the entities to associate the component with.
+     *
+     * @note All entity_ids must be unsigned integers.
+     * @note Requires at least one entity_id.
+     */
     template<typename... Ts>
-    auto batch_remove_swap(Ts... entity_ids) noexcept ->
-        std::enable_if_t<((is_index_type_v<Ts>) && ...)
-        && (sizeof...(Ts) > 0), void> { (remove_swap(entity_ids), ...); }
+    auto batch_remove_swap(Ts&&... entity_ids) noexcept ->
+        std::enable_if_t<(std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), void> {
+            (remove_swap(std::forward<Ts>(entity_ids)), ...);
+    }
 
 public:
     bool contains(std::size_t entity_id) const {
@@ -1219,9 +1354,11 @@ public:
     }
 
     template<typename... Ts>
-    auto batch_contains(Ts... entity_ids) const noexcept ->
-        std::enable_if_t<(is_index_type_v<Ts> && ...)
-        && (sizeof...(Ts) > 0), bool> { return (contains(entity_ids) && ...); }
+    auto batch_contains(Ts&&... entity_ids) const noexcept ->
+        std::enable_if_t<(std::is_integral_v<Ts> && ...)
+        && (std::is_unsigned_v<Ts> && ...) && (sizeof...(Ts) > 0), bool> {
+            return (contains(std::forward<Ts>(entity_ids)) && ...);
+    }
 
     std::size_t count() const noexcept { return dense_.size(); }
     std::size_t capacity() const noexcept { return sparse_.capacity(); }
@@ -1244,7 +1381,7 @@ public:
     auto end() const noexcept { return dense_.end(); }
 
 public:
-    T* operator[](std::size_t entity_id) noexcept {
+    T* operator[](std::size_t entity_id) noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -1256,7 +1393,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    const T* operator[](std::size_t entity_id) const noexcept {
+    const T* operator[](std::size_t entity_id) const noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -1268,7 +1405,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    T* get(std::size_t entity_id) & noexcept {
+    T* get(std::size_t entity_id) & noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -1280,7 +1417,7 @@ public:
         return &dense_[sparse_[entity_id]];
     }
 
-    const T* get(std::size_t entity_id) const& noexcept {
+    const T* get(std::size_t entity_id) const& noexcept { // NOTE: unsafe
         if (!is_valid_entity_id(entity_id) || sparse_[entity_id] == SIZE_MAX) {
             error_not_enough_capacity(
                 "Sparse vector too small or entity has no component",
@@ -1372,6 +1509,8 @@ public:
       *
       * @tparam T The component type (must inherit from Component<T>).
       * @param entity_id ID of the entity to which the component is added.
+      * 
+      * @note The component must be registered in the registry.
       */
     template<typename T>
     auto emplace(std::size_t entity_id) noexcept ->
@@ -1388,16 +1527,18 @@ public:
      * 
      * @tparam T The component type (must inherit from Component<T>).
      * @param entity_ids Variadic pack of entity IDs to which the component is added.
-     * 
-     * @note All entities must be convertible to std::size_t. Passing zero IDs is not allowed.
+     *      
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
      */
-    template<typename T, typename... Ts>
-    auto emplace_all(Ts&&... entity_ids) noexcept ->
+    template<typename T, typename... Ids>
+    auto emplace_all(Ids&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_base_of_v<Component<T>, T>
-        && (std::is_convertible_v<Ts, std::size_t> && ...)
-        && (sizeof...(Ts) > 0), void> {
-            //(emplace<T>(std::forward<Ts>(entity_ids)), ...);
-            std::get<Sparse<T>>(storage_).batch_emplace(entity_ids);
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && (sizeof...(Ids) > 0), void> {
+            std::get<Sparse<T>>(storage_) //faire fonction get interne
+                .batch_emplace(std::forward<Ids>(entity_ids)...);
     }
 
     /**
@@ -1408,6 +1549,8 @@ public:
      * @param entity_id ID of the entity whose component is being required.
      *
      * @return A reference to the component of type T.
+     * 
+     * @note The component must be registered in the registry.
      */
     template<typename T>
     [[nodiscard]] auto get(std::size_t entity_id) noexcept ->
@@ -1427,13 +1570,53 @@ public:
      * @param entity_ids Variadic pack of entity IDs to which the component is added.
      *
      * @return A std::tuple of references to all components of type T.
+     * 
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
      */
-    template<typename T, typename... Ts>
-    [[nodiscard]] auto get_all(Ts&&... entity_ids) noexcept ->
+    template<typename T, typename... Ids>
+    [[nodiscard]] auto get_all(Ids&&... entity_ids) noexcept ->
         std::enable_if_t<std::is_base_of_v<Component<T>, T>
-        && (std::is_convertible_v<Ts, std::size_t> && ...)
-        && (sizeof...(Ts) > 0), std::tuple<T&...>> {
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && std::disjunction_v<std::is_same<T, Ts>...>
+        && (sizeof...(Ids) > 0), std::tuple<T&>> {
             return std::tie(get<T>(entity_ids)...);
+    }
+
+    /**
+     * @brief Removes the component of type T associated with the given entity ID.
+     * 
+     * @tparam T The component type (must inherit from Component<T>).
+     * @param entity_id ID of the entity whose component is being required.
+     *
+     * @note The component must be registered in the registry.
+     */
+    template<typename T>
+    auto remove(std::size_t entity_id) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && std::disjunction_v<std::is_same<T, Ts>...>, void> {
+            std::get<Sparse<T>>(storage_).remove_swap(entity_id);
+    }
+
+    /**
+     * @brief Removes the component of type T associated with all given entitiy IDs.
+     *
+     * @tparam T The component type (must inherit from Component<T>).
+     * @param entity_ids Variadic pack of entity IDs to which the component is added.
+     *
+     * @note The component must be registered in the registry.
+     * @note All entity_ids must be unsigned integers.
+     * @note Passing zero IDs is not allowed.
+     */
+    template<typename T, typename... Ids>
+    auto remove_all(Ids&&... entity_ids) noexcept ->
+        std::enable_if_t<std::is_base_of_v<Component<T>, T>
+        && std::disjunction_v<std::is_same<T, Ts>...>
+        && ((std::is_integral_v<Ids> && std::is_unsigned_v<Ids>) && ...)
+        && (sizeof...(Ids) > 0), void> {
+            std::get<Sparse<T>>(storage_)
+                .batch_remove_swap(std::forward<Ids>(entity_ids)...);
     }
 
 public:
@@ -1645,13 +1828,14 @@ int main() {
         registry.emplace<Velocity>(e0);
         registry.emplace<Velocity>(e0);
 
-        registry.emplace_all<Velocity>(1, 2, 3 ,4 ,5);
+        registry.emplace_all<Velocity>(std::move(e0), std::move(e1),
+            std::move(e2), std::move(e3), std::move(e4), std::move(e5));
 
         auto vel = registry.get<Velocity>(0);
 
         vel.test();
 
-
+        //movement_system(registry.view<Position, Velocity>()
 
 
         //Registry[
