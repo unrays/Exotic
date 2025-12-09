@@ -19,20 +19,6 @@ I also want to mention that I've tried my best to avoid looking at popular ECS l
 
 This is, in a way, the ultimate challenge of the last two months: learning this new passion, ECS. I'm still young, I still have a long way to go, but I feel like I've improved in the last few weeks (for example, the metaprogramming template over the last three weeks), and I need to consolidate all this learning into one ultimate project before 2026! Hoping this interests you and that you can understand my perspective, I'd like to discuss these topics, but I don't know anyone who likes ECS in my circle, so if you're curious, feel free to contact me :)
 
-<p>
-  <a href="#iteration-1">Iteration 1</a> •
-  <a href="#iteration-2">Iteration 2</a> •
-  <a href="#iteration-3">Iteration 3</a> •
-  <a href="#iteration-4">Iteration 4</a> •
-  <a href="#iteration-5">Iteration 5</a> •
-  <a href="#iteration-6">Iteration 6</a> •
-  <a href="#iteration-7">Iteration 7</a> •
-  <a href="#iteration-8">Iteration 8</a> •
-  <a href="#iteration-9">Iteration 9</a> •
-  <a href="#iteration-10">Iteration 10</a> •
-  <a href="#iteration-11">Iteration 11</a> 
-</p>
-
 <p style="color:gray; font-size:0.75em; opacity:0.6; text-align:center;">
 Copyright 2025 Félix-Olivier Dumas
 </p>
