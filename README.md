@@ -2,6 +2,8 @@
 
 *I also want to mention that I've tried my best to avoid looking at popular ECS like Beavy, EnTT, or Flecs in order to maintain a "healthy" direction and learn as much as possible without being influenced by "best" practices. I enjoy making mistakes, failing, and getting back up; that's what I find fun about learning. If I watched and copied others, I simply wouldn't learn. Here, I'm quite proud of the TagsGroup system I've come up with; a component has one or more tags that it automatically assigns to its entity when the tag is applied. Basically, I want a dynamic tagging system. For example, if I add the Position component, the entity is automatically (by default) assigned the position tags. Finally, there's always the option to manually disable, add, or remove tags to control everything in very specific situations.*
 
+*This is, in a way, the ultimate challenge of the last two months: learning this new passion, ECS. I'm still young, I still have a long way to go, but I feel like I've improved in the last few weeks (for example, the metaprogramming template over the last three weeks), and I need to consolidate all this learning into one ultimate project before 2026! Hoping this interests you and that you can understand my perspective, I'd like to discuss these topics, but I don't know anyone who likes ECS in my circle, so if you're curious, feel free to contact me :)*
+
 *Under construction*
 
 ## The cleanest and most concise version to date, really promising.
