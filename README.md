@@ -7,7 +7,7 @@
 Template-based, cache-friendly ECS designed for speed, scalability, and massive entity counts.
 </p>
 
-<p style="margin-top:0; color:#555;">December, 2025</p>
+<p style="margin-top:0; color:#555;">November 28, 2025</p>
 
 </div>
 
