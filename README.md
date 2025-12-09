@@ -1,32 +1,42 @@
 <div align="center" style="line-height:1.4">
-    <h1 style="margin-bottom:0.2em;">Exotic</h1>
-    <h3 style="margin-top:0; margin-bottom:0.5em;">A template-driven C++ ECS</h3>
 
-    <p style="margin-top:0.2em; margin-bottom:0.5em; font-weight:bold;">
-        Template-based, cache-friendly ECS designed for speed, scalability, and massive entity counts.
-    </p>
+<h1 style="margin-bottom: 0.2em;">Exotic</h1>
+<h3 style="margin-top:0; margin-bottom:0.5em;">A template-driven C++ ECS</h3>
 
-    <p style="margin-top:0; color:#555;">November 28, 2025</p>
+<p style="margin-top:0.2em; margin-bottom:0.5em; font-weight:bold;">
+Template-based, cache-friendly ECS designed for speed, scalability, and massive entity counts.
+</p>
+
+<p style="margin-top:0; color:#555;">November 28, 2025</p>
+
 </div>
 
-<hr style="border:0; border-top:1px solid #ccc; margin:1em 0;">
+<hr style="border:0; border-top:1px solid #ccc; margin: 1em 0;">
+
+I literally could have called it Wave 2.0, but I was a bit too lazy to have to justify myself and make the world understand that there was a version 1, so I chose another name that I think is super cool. This project, as of Friday, November 28, 2025, is one of my first real experiments with sfinae features and srtp, like std::enable_if... for example. Furthermore, I intend to add lots of super cool stuff in the future, so stay tuned.
+
+I also want to mention that I've tried my best to avoid looking at popular ECS like Beavy, EnTT, or Flecs in order to maintain a "healthy" direction and learn as much as possible without being influenced by "best" practices. I enjoy making mistakes, failing, and getting back up; that's what I find fun about learning. If I watched and copied others, I simply wouldn't learn. Here, I'm quite proud of the TagsGroup system I've come up with; a component has one or more tags that it automatically assigns to its entity when the tag is applied. Basically, I want a dynamic tagging system. For example, if I add the Position component, the entity is automatically (by default) assigned the position tags. Finally, there's always the option to manually disable, add, or remove tags to control everything in very specific situations.
+
+This is, in a way, the ultimate challenge of the last two months: learning this new passion, ECS. I'm still young, I still have a long way to go, but I feel like I've improved in the last few weeks (for example, the metaprogramming template over the last three weeks), and I need to consolidate all this learning into one ultimate project before 2026! Hoping this interests you and that you can understand my perspective, I'd like to discuss these topics, but I don't know anyone who likes ECS in my circle, so if you're curious, feel free to contact me :)
 
 <p>
-I could have called it Wave 2.0, but I was too lazy to explain a “version 1”, so I picked a cooler name instead. As of November 28, 2025, this project is one of my first real experiments with SFINAE and CRTP (like std::enable_if, for example). I plan to add a lot more cool features in the future, so stay tuned.
+  <a href="#iteration-1">Iteration 1</a> •
+  <a href="#iteration-2">Iteration 2</a> •
+  <a href="#iteration-3">Iteration 3</a> •
+  <a href="#iteration-4">Iteration 4</a> •
+  <a href="#iteration-5">Iteration 5</a> •
+  <a href="#iteration-6">Iteration 6</a> •
+  <a href="#iteration-7">Iteration 7</a> •
+  <a href="#iteration-8">Iteration 8</a> •
+  <a href="#iteration-9">Iteration 9</a> •
+  <a href="#iteration-10">Iteration 10</a> •
+  <a href="#iteration-11">Iteration 11</a> 
 </p>
 
-<p>
-I’ve also tried to avoid looking at popular ECS frameworks like Bevy, EnTT, or Flecs. I wanted to learn and experiment without being influenced by “best practices.” I enjoy making mistakes, failing, and recovering—that’s how I learn best. One thing I’m proud of is the TagsGroup system: components can automatically assign one or more tags to their entities, while still allowing manual adjustments for specific situations.
+<p style="color:gray; font-size:0.75em; opacity:0.6; text-align:center;">
+Copyright 2025 Félix-Olivier Dumas
 </p>
 
-<p>
-This project represents my ultimate challenge over the last two months: learning ECS. I’m still young and have a lot to learn, but I’ve improved a lot recently (especially in template metaprogramming). I want to consolidate this knowledge into one ultimate project before 2026. If this interests you, feel free to reach out—I don’t know anyone around me who’s as obsessed with ECS.
-</p>
-
-<div style="display:flex; justify-content:center; align-items:center;">
-    <p style="color:gray; font-size:0.75em; opacity:0.6; text-align:center;">
-        Copyright 2025 Félix-Olivier Dumas
-    </p>
 </div>
 
 ---
