@@ -23,8 +23,6 @@ This is, in a way, the ultimate challenge of the last two months: learning this 
 Copyright 2025 Félix-Olivier Dumas
 </p>
 
-</div>
-
 ---
 
 *Under construction*
