@@ -545,6 +545,7 @@ private:
 };
 ```
 
+## First view system of my career :) *(it's not perfect, far from it)*
 ```cpp
 // Copyright (c) December 2025 Félix-Olivier Dumas. All rights reserved.
 // Licensed under the terms described in the LICENSE file.
@@ -601,7 +602,6 @@ public:
     ~View() = default;
     
 public:
-    template<typename... Ts> //possiblement faire un iterator generique plus tard 
     class ViewIterator { //en gros, ++ et si entity na pas les trois, il skil au prochain
     public:
         /**
@@ -612,8 +612,9 @@ public:
          * 
          * genre verif si begin est plus petit que end
          */ 
-        ViewIterator(std::size_t begin_id, /*end???*/) noexcept
-            : current_id_(begin_id) {}
+        ViewIterator(std::tuple<Sparse<Ts>&...>& ts_ref, std::size_t begin_id, std::size_t max_id) noexcept
+            : ts_ref_(ts_ref), current_id_(begin_id), end_id_(max_id) {}
+
 
         /**
          * @brief Default copy constructor.
@@ -652,6 +653,13 @@ public:
 
     public:
         /**
+         * @brief Returns the current entity ID.
+         *
+         * @return The ID of the entity the iterator currently points to.
+         */
+        std::size_t operator*() const { return current_id_; }
+
+        /**
          * @brief Advances the iterator to the next element (prefix version).
          *
          * Moves the iterator forward to the next valid element according to the container's rules.
@@ -661,7 +669,7 @@ public:
          * @note This function modifies the iterator in-place.
          */
         ViewIterator& operator++() {
-            while (current_id_ != end_id && !is_valid_entity(++current_id_));
+            while (current_id_ != end_id_ && !is_valid_entity(++current_id_));
             return *this;
         }
 
@@ -678,7 +686,7 @@ public:
          */
         ViewIterator operator++(int) {
             ViewIterator temp = *this;
-            while (current_id_ != end_id && !is_valid_entity(++current_id_));
+            while (current_id_ != end_id_ && !is_valid_entity(++current_id_));
             return temp;
         }
 
@@ -693,6 +701,8 @@ public:
         bool operator==(const ViewIterator& other) const noexcept {
             return current_id_ == other.current_id_;
         }
+
+        //faire un genre de it-> (ts...) choisi la composante de l'itérateur
 
         /**
          * @brief Compares two iterators for inequality.
@@ -717,13 +727,16 @@ public:
          */
         inline constexpr bool is_valid_entity(std::size_t entity_id) const noexcept {
             return std::apply([&](auto&&... args) {
-                return ((args[entity_id] != nullptr && ...)); // temporary patch
-            }, s_ref_);
+                return (((args[entity_id] != nullptr) && ...)); // temporary patch
+            }, ts_ref_);
         }
 
     private:
         std::size_t current_id_;
-        std::size_t end_id;
+        std::size_t end_id_;
+
+    private:
+        std::tuple<Sparse<Ts>&...>& ts_ref_;
     };
 
     /* result espéré */
@@ -742,13 +755,45 @@ public:
        le registre injecte les sparse set correspondants dans view */
 
 public:
-    //Iterator begin() { return Iterator(data); } <- plus tard
-    //Iterator end() { return Iterator(data + size); } <- plus tard
+    template<typename F>
+    auto each(F&& func) noexcept ->
+    std::enable_if_t<std::is_invocable_v<F, Ts&...>, void> {
+        std::apply([&](auto&&... args) {
+            for (auto it = begin(); it != end(); ++it) {
+                func(*args[*it]...);
+            }
+        }, s_ref_);
+    }
+
+    /**
+     * @brief Returns a ViewIterator starting at index 0.
+     * 
+     * @return A ViewIterator at index 0.
+     */
+    ViewIterator begin() noexcept {
+        std::size_t max = std::apply([](auto&&... args) {
+            return std::max({ args.count()... });
+        }, s_ref_);
+        return ViewIterator(s_ref_, DEFAULT_MIN_SIZE, max);
+    }
+
+    /**
+     * @brief Returns a ViewIterator starting at highest index among stored sets.
+     *
+     * @return A ViewIterator representing the end of iteration.
+     */
+    ViewIterator end() noexcept {
+        std::size_t max = std::apply([](auto&&... args) {
+            return std::max({ args.count()... });
+        }, s_ref_);
+        return ViewIterator(s_ref_, max, max);
+    }
+
+private:
+    static constexpr std::size_t DEFAULT_MIN_SIZE = 0;
 
 private:
     std::tuple<Sparse<Ts>&...> s_ref_;
-    //size_t size; <- plus tard
-
 };
 ```
 
