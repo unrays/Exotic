@@ -1,3 +1,18 @@
+<div align="center" style="line-height:1.4">
+
+<h1 style="margin-bottom: 0.2em;">Exotic</h1>
+<h3 style="margin-top:0; margin-bottom:0.5em;">A template-driven C++ ECS</h3>
+
+<p style="margin-top:0.2em; margin-bottom:0.5em; font-weight:bold;">
+Template-based, cache-friendly ECS designed for speed, scalability, and massive entity counts.
+</p>
+
+<p style="margin-top:0; color:#555;">December, 2025</p>
+
+</div>
+
+<hr style="border:0; border-top:1px solid #ccc; margin: 1em 0;">
+
 *I literally could have called it Wave 2.0, but I was a bit too lazy to have to justify myself and make the world understand that there was a version 1, so I chose another name that I think is super cool. This project, as of Friday, November 28, 2025, is one of my first real experiments with sfinae features and srtp, like std::enable_if... for example. Furthermore, I intend to add lots of super cool stuff in the future, so stay tuned.*
 
 *I also want to mention that I've tried my best to avoid looking at popular ECS like Beavy, EnTT, or Flecs in order to maintain a "healthy" direction and learn as much as possible without being influenced by "best" practices. I enjoy making mistakes, failing, and getting back up; that's what I find fun about learning. If I watched and copied others, I simply wouldn't learn. Here, I'm quite proud of the TagsGroup system I've come up with; a component has one or more tags that it automatically assigns to its entity when the tag is applied. Basically, I want a dynamic tagging system. For example, if I add the Position component, the entity is automatically (by default) assigned the position tags. Finally, there's always the option to manually disable, add, or remove tags to control everything in very specific situations.*
