@@ -19,10 +19,6 @@ I also want to mention that I've tried my best to avoid looking at popular ECS l
 
 This is, in a way, the ultimate challenge of the last two months: learning this new passion, ECS. I'm still young, I still have a long way to go, but I feel like I've improved in the last few weeks (for example, the metaprogramming template over the last three weeks), and I need to consolidate all this learning into one ultimate project before 2026! Hoping this interests you and that you can understand my perspective, I'd like to discuss these topics, but I don't know anyone who likes ECS in my circle, so if you're curious, feel free to contact me :)
 
-<p style="color:gray; font-size:0.75em; opacity:0.6; text-align:center;">
-Copyright 2025 Félix-Olivier Dumas
-</p>
-
 ---
 
 *Under construction*
