@@ -21,7 +21,7 @@ This is, in a way, the ultimate challenge of the last two months: learning this 
 
 ---
 
-*Under construction*<br/>
+*Under construction*<br/><br/>
 *I'm currently working on a small personal engine called Mixin that implements parts of this ECS. As I develop it, I'll improve the borrowed ECS from here, and when I'm satisfied and convinced of its functionality in real-world situations, I'll post it here.*
 
 ## The cleanest and most concise version to date, really promising.
